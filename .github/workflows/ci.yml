@@ -1,0 +1,14 @@
+name: Validate
+on: [push, pull_request]
+permissions: {contents: read}
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: npm test
+      - run: cd apps/web && npm install --no-audit --no-fund && npm run lint && npm run build
+      - run: cd apps/content-service && npm install --no-audit --no-fund && npx prisma generate && npm run build
+      - run: cd apps/api-gateway && npm install --no-audit --no-fund && npm run build

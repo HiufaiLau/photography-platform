@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-photo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-photo_content}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 15
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    networks: [internal]
+  content:
+    build: ./apps/content-service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-photo}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-photo_content}?schema=public
+      MEDIA_DIR: /data/media
+      PORT: 3002
+    volumes: [media_data:/data/media]
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [internal]
+  gateway:
+    build: ./apps/api-gateway
+    restart: unless-stopped
+    environment:
+      CONTENT_SERVICE_URL: http://content:3002
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in .env}
+      PORT: 3001
+    depends_on: [content]
+    networks: [internal]
+  web:
+    build: ./apps/web
+    restart: unless-stopped
+    environment:
+      GATEWAY_URL: http://gateway:3001
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in .env}
+      ADMIN_PASSWORD_SCRYPT: ${ADMIN_PASSWORD_SCRYPT:?Set ADMIN_PASSWORD_SCRYPT in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+    ports: ['127.0.0.1:3000:3000']
+    depends_on: [gateway]
+    networks: [internal]
+networks: {internal: {}}
+volumes: {postgres_data: {}, media_data: {}}

@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+const root=process.env.BASE_URL||'http://localhost:3000';const password=process.env.TEST_ADMIN_PASSWORD;
+if(!password)throw Error('Set TEST_ADMIN_PASSWORD to the password chosen during init.');
+const login=await fetch(`${root}/api/auth`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});assert.equal(login.status,200,'admin login');const cookie=login.headers.get('set-cookie')?.split(';')[0];assert.ok(cookie,'cookie assigned');const headers={'content-type':'application/json',cookie};
+let r=await fetch(`${root}/api/posts`,{method:'POST',headers,body:JSON.stringify({title:'Automated publishing check',slug:'e2e-'+Date.now(),excerpt:'E2E story',content:'A complete publishing flow.',status:'DRAFT'})});assert.equal(r.status,201,'post created');const post=await r.json();
+r=await fetch(`${root}/blog/${post.slug}`);assert.equal(r.status,404,'draft not public');
+r=await fetch(`${root}/api/posts/${post.id}`,{method:'PATCH',headers,body:JSON.stringify({status:'PUBLISHED'})});assert.equal(r.status,200,'post published');
+r=await fetch(`${root}/blog/${post.slug}`);assert.equal(r.status,200,'published visible');assert.match(await r.text(),/Automated publishing check/);
+r=await fetch(`${root}/api/posts/${post.id}`,{method:'PATCH',headers,body:JSON.stringify({content:'Updated article text'})});assert.equal(r.status,200,'post edited');
+r=await fetch(`${root}/api/posts/${post.id}`,{method:'DELETE',headers});assert.equal(r.status,200,'post deleted');
+r=await fetch(`${root}/blog/${post.slug}`);assert.equal(r.status,404,'deleted not public');
+console.log('PASS: login → draft → publish → edit → delete → hidden');

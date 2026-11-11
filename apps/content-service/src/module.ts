@@ -1,0 +1,2 @@
+import { Module } from '@nestjs/common';import { PrismaClient } from '@prisma/client';import { PostsController } from './posts.controller';import { PostsService } from './posts.service';import { MediaController, MediaService } from './media.controller';
+@Module({controllers:[PostsController,MediaController],providers:[PostsService,MediaService,{provide:PrismaClient,useFactory:()=>new PrismaClient()}]})export class AppModule {}

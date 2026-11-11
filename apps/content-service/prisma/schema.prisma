@@ -1,0 +1,28 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+enum PostStatus { DRAFT PUBLISHED }
+model Post {
+  id String @id @default(cuid())
+  title String
+  slug String @unique
+  excerpt String @default("")
+  content String @default("")
+  status PostStatus @default(DRAFT)
+  images Image[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  publishedAt DateTime?
+  @@index([status, publishedAt])
+}
+model Image {
+  id String @id @default(cuid())
+  postId String?
+  post Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
+  filename String
+  mime String
+  alt String @default("")
+  caption String @default("")
+  position Int @default(0)
+  createdAt DateTime @default(now())
+  @@index([postId, position])
+}

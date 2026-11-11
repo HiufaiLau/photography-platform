@@ -1,0 +1,1 @@
+import type {MetadataRoute} from 'next';import {publishedPosts} from '@/lib/posts';export default async function sitemap():Promise<MetadataRoute.Sitemap>{const site=process.env.NEXT_PUBLIC_SITE_URL||'http://localhost:3000';return [{url:site},...(await publishedPosts()).map(p=>({url:`${site}/blog/${p.slug}`,lastModified:p.updatedAt}))]}
